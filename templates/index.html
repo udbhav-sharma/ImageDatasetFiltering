@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Dataset Selection Tool</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sb-admin-2.min.css') }}">
+    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.7.0/css/all.css" integrity="sha384-6jHF7Z3XI3fF4XZixAuSu0gGKrXwoX/w3uFPxC56OtjChio7wtTGJWRW53Nhx6Ev" crossorigin="anonymous">
+  </head>
+  
+  <body>
+    <div id="wrapper">
+      <div id = "content-wrapper" class="d-flex flex-column">
+        <div id="content">
+
+          <div class="container-fluid">
+
+            <div class="container">
+              <div class="row mt-4">
+                <div class="col-md-12 text-center">
+                  <h1 class="h2 text-gray-800">Image Dataset Selection</h1>
+                </div>
+              </div>
+        
+              <hr/>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <button type="button" class="btn btn-sm btn-light" id="prevBtn">
+                    <i class="fa fa-arrow-left"></i> Prev
+                  </button>
+                </div>
+                <div class="col-md-6">
+                  <button type="button" class="btn btn-sm btn-primary float-right" id="exportBtn">
+                    <i class="fas fa-file-export text-white-50"></i> Export Dataset
+                  </button>
+                </div>
+              </div>
+        
+              <div id="image-selection-container">
+
+                <div class="row mt-2">
+                  <div class="col-md-12 ml-2">
+                    <p class="text-gray-900 mb-2" id="image-details"></p>
+                  </div>
+                </div>
+
+                <div class="row mb-4">
+                  <div class="col-md-12">
+                    <div class="card shadow h-100 py-2">
+                      <div class="card-body">
+                        <div class="row">
+                          <div class="col-md-12 mb-2" id="image-status-div">
+                          </div>
+                        </div>
+                        <div class="row no-gutters justify-content-center align-items-center">
+                          <div id="image-div">
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <button type="button" class="btn btn-success btn-lg float-right"id="yesBtn">
+                      <i class="fas fa-check text-white-50"></i> Pick</button>
+                  </div>
+                  <div class="col-md-6">
+                    <button type="button" class="btn btn-danger btn-lg" id="noBtn">
+                      <i class="fas fa-times text-white-50"></i> Nope</button>
+                  </div>
+                </div>
+              </div>
+
+              <div id="image-selection-completion-container" style="display: none" class="mt-4">
+                <div class="row">
+                  <div class="col-md-12">
+                    <div class="card">
+                      <div class="card-body">
+                        <div class="row no-gutters align-items-center mb-4 mt-4">
+                          <div class="col-md-12 text-center">
+                            <i class="fas fa-check-double fa-10x text-success"></i>
+                          </div>
+                        </div>
+                        <div class="row no-gutters align-items-center">
+                            <div class="col-md-12 text-center">
+                              <p class="lead text-gray-800 mb-5">There is nothing left to do!!</p>
+                            </div>
+                          </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <footer class="sticky-footer bg-white mt-4">
+              <div class="container my-auto">
+                <div class="copyright text-center my-auto">
+                  <span>Creator © Udbhav 2019</span>
+                </div>
+              </div>
+            </footer>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+  </body>
+
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+  <script src="{{ url_for('static', filename='js/sb-admin-2.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/bootstrap-notify.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+</html>
