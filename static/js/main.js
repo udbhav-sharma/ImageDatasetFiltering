@@ -36,7 +36,7 @@ $('#exportBtn').click(function() {
         type: 'POST',
         success: function(response) {
             enableAll();
-            showSuccess("Dataset " + response.responseText + " exported successfully!!");
+            showSuccess("Dataset " + response + " exported successfully!!");
         },
         error: function(response) {
             showError("Something went wrong...");

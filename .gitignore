@@ -2,6 +2,7 @@ virtual/
 .DS_Store
 static/images/
 data/*.json
+dataset/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
