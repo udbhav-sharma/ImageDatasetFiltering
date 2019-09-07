@@ -1,5 +1,6 @@
 virtual/
 .DS_Store
+static/dataset/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
