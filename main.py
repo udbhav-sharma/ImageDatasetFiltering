@@ -90,3 +90,4 @@ if __name__ == "__main__":
     atexit.register(cleanup)
 
     app.run()
+    # app.run(host='0.0.0.0')
