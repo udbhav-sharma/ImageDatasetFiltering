@@ -11,76 +11,107 @@ import time
 
 app = FlaskAPI(__name__)
 
-image_details = {}
-image_status = {}
+datasets = {}
 empty_image = {
     "id": "<END>"
 }
 
-@app.route("/")
-def home():
-    return render_template("index.html")
+@app.route("/dataset/<d_name>")
+def home(d_name):
+    load(d_name)
 
-@app.route("/image/<int:index>", methods=['GET'])
-def next(index):
-    if index > len(image_details): 
+    return render_template("index.html", dataset_name = d_name)
+
+@app.route("/dataset/<d_name>/<int:index>", methods=['GET'])
+def next(d_name, index):
+    load(d_name)
+
+    if index > len(datasets[d_name]): 
         return empty_image
 
-    static_details = image_details[index-1]
+    # TODO: Optimize the retrieval
+    key = list(datasets[d_name])[index-1]
+    return datasets[d_name][key]
 
-    img = {'status' : 0}
-    for key, val in static_details.items(): img[key] = val
-    if static_details["id"] in image_status: img['status'] = image_status[static_details["id"]]
+@app.route("/dataset/<d_name>/status/<id>/<int:val>", methods=['PUT'])
+def updateStatus(d_name, id, val):
+    load(d_name)
 
-    return img
+    if id in datasets[d_name]:
+        datasets[d_name][id]["status"] = val
+        return "", http_status.HTTP_204_NO_CONTENT
+    else:
+        return "Invalid dataset or image", http_status.HTTP_400_BAD_REQUEST
 
-@app.route("/updateStatus/<id>/<int:val>", methods=['PUT'])
-def updateStatus(id, val):
-    image_status[id] = val
+@app.route("/dataset/<d_name>/export", methods=['POST'])
+def export(d_name):
+    load(d_name)
 
-    return "", http_status.HTTP_204_NO_CONTENT
+    n_d_name =  request.form["name"]
+    print("Creating dataset with name: " + n_d_name)
 
-@app.route("/export", methods=['POST'])
-def export():
-    dataset_name = time.strftime("%Y%m%d-%H%M%S")
+    if len(datasets[d_name]) == 0:
+        return "Invalid dataset name", http_status.HTTP_400_BAD_REQUEST
 
-    print("Creating dataset with name: " + dataset_name)
-
-    # Creating dataset directory
-    path = dirname(os.path.realpath(__file__))
-    res = join(join(path, "static"), "images")
-    dest = join(join(path, "dataset"), dataset_name)
-
+    dest = images_dir(n_d_name)
+    if os.path.exists(dest): return "Dataset already exists", http_status.HTTP_400_BAD_REQUEST
+    
     os.makedirs(dest)
 
+    src = images_dir(d_name)
+
+    images_detail = {}
     # Exporting data
-    for image in image_details:
-        if image["id"] in image_status and image_status[image["id"]] == 1:
-            shutil.copy(join(res, image["name"]), dest)
-
-    return dataset_name, http_status.HTTP_201_CREATED
+    for image in datasets[d_name].values():
+        if image["status"] == 1:
+            shutil.copy(join(src, image["name"]), dest)
+            images_detail[image["id"]] = image
     
-def init():
-    global image_details
-    global image_status
+    with open(join(dataset_dir(n_d_name), 'ImagesDetail.json'), 'w') as outfile:
+        json.dump(images_detail, outfile)
 
-    with open('data/ImageDetail.json') as json_file:
-        image_details = json.load(json_file)
-    
-    with open('data/ImageStatus.json') as json_file:
-        image_status = json.load(json_file)
+    return n_d_name, http_status.HTTP_201_CREATED
+
+def load(d_name):
+    global datasets
+
+    if d_name not in datasets:
+        images_detail_path = join(join(dataset_dir(), d_name), "ImagesDetail.json")
+
+        if os.path.exists(images_detail_path):
+            with open(images_detail_path) as json_file:
+                datasets[d_name] = json.load(json_file)
+        else:
+            datasets[d_name] = {}
 
 def save():
+    for d_name in datasets:
+        if len(datasets[d_name]) > 0:
+            with open(join(dataset_dir(d_name), 'ImagesDetail.json'), 'w') as outfile:
+                json.dump(datasets[d_name], outfile)
+
     print("Image Status written to the file")
-    with open('data/ImageStatus.json', 'w') as outfile:
-        json.dump(image_status, outfile)
+
+def images_dir(d_name):
+    return join(dataset_dir(d_name), "images")
+
+def dataset_dir(d_name=None):
+    if d_name is None:
+        return join(static_dir(), "dataset")
+    
+    return join(dataset_dir(), d_name)
+
+def static_dir(): 
+    return join(main_dir(), "static")
+
+def main_dir():
+    return dirname(os.path.realpath(__file__))
 
 def cleanup():
     save()
     scheduler.shutdown()
 
 if __name__ == "__main__":
-    init()
 
     scheduler = BackgroundScheduler()
     scheduler.add_job(func=save, trigger="interval", seconds=60)

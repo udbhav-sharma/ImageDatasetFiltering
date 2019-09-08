@@ -30,10 +30,21 @@ $( "#noBtn" ).click(function() {
 });
 
 $('#exportBtn').click(function() {
+    var name = prompt("Please enter dataset name. Special characters are not allowed.");
+    name = name.replace(/[^a-zA-Z0-9]/g,'');
+
+    if (name.length < 0) {
+        showError("Invalid dataset name");
+        return;
+    }
+
     disableAll();
     $.ajax({
-        url: "/export",
+        url: "/dataset/" + getDatasetName() + "/export",
         type: 'POST',
+        data: {
+            "name": name
+        },
         success: function(response) {
             enableAll();
             showSuccess("Dataset " + response + " exported successfully!!");
@@ -61,7 +72,7 @@ function decrementIndex() {
 
 function updateImage(index, successCallback, errCallback) {
     disableAll();
-    $.get( "/image/" + index, function( data ) {
+    $.get( "/dataset/" + getDatasetName() + "/" + index, function( data ) {
         currentImage = data;
         enableAll();
         showImage();
@@ -76,7 +87,7 @@ function updateImage(index, successCallback, errCallback) {
 function updateStatus(id, status, successCallback) {
     disableAll();
     $.ajax({
-        url: "/updateStatus/" + id + "/" + status,
+        url: "/dataset/" + getDatasetName() + "/status/" + id + "/" + status,
         type: 'PUT',
         success: function(response) {
             enableAll();
@@ -111,9 +122,11 @@ function showImage() {
 }
 
 function getImageDetails() {
-    html = currentImage.id + ": " + currentImage.category;
-    if (currentImage.subcategory != "")
-        html += " -> " + currentImage.subcategory;
+    html = currentImage.id;
+
+    if (currentImage.category.length >= 1) {
+        html += ": " + currentImage.category.join(" -> ");
+    }
 
     return html;
 }
@@ -127,7 +140,7 @@ function getImageStatusDiv() {
 }
 
 function getImageDiv() {
-    url = "/static/images/" + currentImage.name;
+    url = "/static/dataset/" + getDatasetName() + "/images/" + currentImage.name;
     return $('<img src="' + url + '" style="width:100%; height:auto;" />')
             .click(function(){
                 window.open(url, '_blank');
@@ -150,4 +163,10 @@ function showError(errMsg) {
         type: 'danger',
         delay: 3000
     });
+}
+
+function getDatasetName() {
+    var l = document.createElement("a");
+    l.href = window.location.href;
+    return l.pathname.split("/")[2];
 }
