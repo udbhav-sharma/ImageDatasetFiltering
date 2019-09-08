@@ -2,6 +2,7 @@ currentImage = {"id" : ""};
 index = 1;
 
 $( document ).ready(function() {
+    index = initIndex();
     updateImage(currentIndex(), function(){}, function (){});
 });
 
@@ -55,6 +56,14 @@ $('#exportBtn').click(function() {
         }
      });
 });
+
+function initIndex() {
+    index_str = window.location.hash.substr(1);
+    if (!isNaN(index_str)) 
+        return Math.max(1, parseInt(index_str));
+    
+    return 1;
+}
 
 function currentIndex() {
     return index;
