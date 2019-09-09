@@ -120,5 +120,5 @@ if __name__ == "__main__":
     # Shut down the scheduler when exiting the app
     atexit.register(cleanup)
 
-    app.run()
-    # app.run(host='0.0.0.0')
+    # app.run()
+    app.run(host='0.0.0.0')

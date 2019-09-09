@@ -59,7 +59,7 @@ $('#exportBtn').click(function() {
 
 function initIndex() {
     index_str = window.location.hash.substr(1);
-    if (!isNaN(index_str)) 
+    if (index_str != "" && !isNaN(index_str)) 
         return Math.max(1, parseInt(index_str));
     
     return 1;
