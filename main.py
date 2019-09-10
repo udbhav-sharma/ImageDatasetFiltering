@@ -30,7 +30,7 @@ def next(d_name, index):
         return empty_image
 
     # TODO: Optimize the retrieval
-    key = list(datasets[d_name])[index-1]
+    key = sorted(datasets[d_name])[index-1]
     return datasets[d_name][key]
 
 @app.route("/dataset/<d_name>/status/<id>/<int:val>", methods=['PUT'])
