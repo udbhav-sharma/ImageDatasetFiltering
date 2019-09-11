@@ -1,32 +1,26 @@
 currentImage = {"id" : ""};
-index = 1;
 
 $( document ).ready(function() {
-    index = initIndex();
-    updateImage(currentIndex(), function(){}, function (){});
+    window.onhashchange = function() {
+        updateImage(currentIndex());
+    }
+
+    updateImage(currentIndex());
 });
 
 $( "#prevBtn" ).click(function() {
-    if (currentIndex() > 1) {
-        updateImage(decrementIndex(), function(){}, function () {
-            incrementIndex();
-        });
-    }
+    window.location.hash = decrementIndex();
 });
 
 $( "#yesBtn" ).click(function() {
     updateStatus(currentImage.id, 1, function() {
-        updateImage(incrementIndex(), function(){}, function () {
-            decrementIndex();
-        });
+        window.location.hash = incrementIndex();
     });
 });
 
 $( "#noBtn" ).click(function() {
     updateStatus(currentImage.id, 0, function() {
-        updateImage(incrementIndex(), function(){}, function () {
-            decrementIndex();
-        });
+        window.location.hash = incrementIndex();
     });
 });
 
@@ -57,39 +51,27 @@ $('#exportBtn').click(function() {
      });
 });
 
-function initIndex() {
-    index_str = window.location.hash.substr(1);
-    if (index_str != "" && !isNaN(index_str)) 
-        return Math.max(1, parseInt(index_str));
-    
-    return 1;
-}
-
 function currentIndex() {
-    return index;
+    return getIndexFromUrl();
 }
 
 function incrementIndex() {
-    index++;
-    return index;
+    return currentIndex() + 1;
 }
 
 function decrementIndex() {
-    index = Math.max(1, index-1);
-    return index;
+    return Math.max(1, currentIndex() - 1);
 }
 
-function updateImage(index, successCallback, errCallback) {
+function updateImage(index) {
     disableAll();
     $.get( "/dataset/" + getDatasetName() + "/" + index, function( data ) {
         currentImage = data;
         enableAll();
-        showImage();
-        successCallback();
+        showImage(currentImage);
     }).fail(function() {
         enableAll();
         showError("Something went wrong...");
-        errCallback();
     });
 }
 
@@ -117,39 +99,39 @@ function enableAll() {
     $('.btn').attr("disabled", false);	
 }
 
-function showImage() {
-    if (currentImage.id == "<END>") {
+function showImage(image) {
+    if (image.id == "<END>") {
         $('#prevBtn').hide();
         $('#image-selection-container').hide();
         $('#image-selection-completion-container').show();
     }
     else {
-        $('#image-details').html(getImageDetails());
-        $('#image-status-div').html(getImageStatusDiv());
-        $('#image-div').html(getImageDiv()); 
+        $('#image-details').html(generateImageDetails(image));
+        $('#image-status-div').html(generateImageStatusDiv(image));
+        $('#image-div').html(generateImageDiv(image)); 
     }
 }
 
-function getImageDetails() {
-    html = currentImage.id;
+function generateImageDetails(image) {
+    html = image.id;
 
-    if (currentImage.category.length >= 1) {
-        html += ": " + currentImage.category.join(" -> ");
+    if (image.category.length >= 1) {
+        html += ": " + image.category.join(" -> ");
     }
 
     return html;
 }
 
-function getImageStatusDiv() {
-    if (currentImage.status == 1)
+function generateImageStatusDiv(image) {
+    if (image.status == 1)
         return '<span class="badge badge-pill badge-success float-right">Selected</span>';
 
     return '<span class="badge badge-pill badge-danger float-right">Not Selected</span>';
 
 }
 
-function getImageDiv() {
-    url = "/static/dataset/" + getDatasetName() + "/images/" + currentImage.name;
+function generateImageDiv(image) {
+    url = "/static/dataset/" + getDatasetName() + "/images/" + image.name;
     return $('<img src="' + url + '" style="width:100%; height:auto;" />')
             .click(function(){
                 window.open(url, '_blank');
@@ -178,4 +160,12 @@ function getDatasetName() {
     var l = document.createElement("a");
     l.href = window.location.href;
     return l.pathname.split("/")[2];
+}
+
+function getIndexFromUrl() {
+    index_str = window.location.hash.substr(1);
+    if (index_str != "" && !isNaN(index_str)) 
+        return Math.max(1, parseInt(index_str));
+    
+    return 1;
 }
