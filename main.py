@@ -1,7 +1,7 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, render_template, request
 from flask_api import FlaskAPI, status as http_status
-from os.path import dirname, join
+from os.path import dirname, join, splitext
 
 import atexit
 import json
@@ -61,11 +61,27 @@ def export(d_name):
     src = images_dir(d_name)
 
     images_detail = {}
+    count = 0
+    str_len = len(str(len(datasets[d_name])))
+
     # Exporting data
-    for image in datasets[d_name].values():
+    for key in sorted(datasets[d_name].keys()):
+        image = datasets[d_name][key]
+
         if image["status"] == 1:
             shutil.copy(join(src, image["name"]), dest)
-            images_detail[image["id"]] = image
+            
+            _, file_extension = splitext(image["name"])
+
+            count += 1
+            id = "%0*d" % (str_len, count)
+            name = "%s%s" % (id, file_extension)
+
+            os.rename(join(dest, image["name"]), join(dest, name))
+
+            images_detail[id] = image
+            images_detail[id]["id"] = id
+            images_detail[id]["name"] = name
     
     with open(join(dataset_dir(n_d_name), 'ImagesDetail.json'), 'w') as outfile:
         json.dump(images_detail, outfile)
