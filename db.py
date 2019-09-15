@@ -129,8 +129,8 @@ class DBClient():
                     "status_map" : dataset.status_map,
                     "created_by" : dataset.created_by
                     }, outfile, indent=4)
-
-        logging.debug("%s dataset flushed to disk" % d_name)
+                    
+            logging.debug("%s dataset flushed to disk" % d_name)
 
     def dataset_json(self, d_name):
         return join(self.dataset_dir(d_name), "dataset.json")
