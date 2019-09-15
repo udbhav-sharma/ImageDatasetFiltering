@@ -45,12 +45,14 @@ for r, d, f in os.walk(input_path):
         data[id] = {
             "id" : id,
             "name" : name,
-            "category" : category,
-            "status" : 1,
-            "originalUrl" : "" 
+            "category" : category
         }
 
         shutil.copy(path, join(images_path, name))
 
-with open(join(output_path, 'ImagesDetail.json'), 'w') as outfile:
-    json.dump(data, outfile)
+with open(join(output_path, 'dataset.json'), 'w') as outfile:
+    json.dump({
+        "images": data,
+        "status_map": {},
+        "created_by": ""
+    }, outfile)

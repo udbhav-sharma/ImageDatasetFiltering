@@ -18,6 +18,12 @@ $( "#yesBtn" ).click(function() {
     });
 });
 
+$( "#mayBeBtn" ).click(function() {
+    updateStatus(currentImage.id, 2, function() {
+        window.location.hash = incrementIndex();
+    });
+});
+
 $( "#noBtn" ).click(function() {
     updateStatus(currentImage.id, 0, function() {
         window.location.hash = incrementIndex();
@@ -26,7 +32,7 @@ $( "#noBtn" ).click(function() {
 
 $('#exportBtn').click(function() {
     var name = prompt("Please enter dataset name. Special characters are not allowed.");
-    name = name.replace(/[^a-zA-Z0-9]/g,'');
+    name = name.replace(/[^a-zA-Z0-9-_]/g, '');
 
     if (name.length < 0) {
         showError("Invalid dataset name");
@@ -35,7 +41,7 @@ $('#exportBtn').click(function() {
 
     disableAll();
     $.ajax({
-        url: "/dataset/" + getDatasetName() + "/export",
+        url: "/api/dataset/" + getDatasetName() + "/export",
         type: 'POST',
         data: {
             "name": name
@@ -45,7 +51,7 @@ $('#exportBtn').click(function() {
             showSuccess("Dataset " + response + " exported successfully!!");
         },
         error: function(response) {
-            showError("Something went wrong...");
+            showError(response.responseText);
             enableAll();
         }
      });
@@ -65,7 +71,7 @@ function decrementIndex() {
 
 function updateImage(index) {
     disableAll();
-    $.get( "/dataset/" + getDatasetName() + "/" + index, function( data ) {
+    $.get( "/api/dataset/" + getDatasetName() + "/" + index, function( data ) {
         currentImage = data;
         enableAll();
         showImage(currentImage);
@@ -78,7 +84,7 @@ function updateImage(index) {
 function updateStatus(id, status, successCallback) {
     disableAll();
     $.ajax({
-        url: "/dataset/" + getDatasetName() + "/status/" + id + "/" + status,
+        url: "/api/dataset/" + getDatasetName() + "/status/" + id + "/" + status,
         type: 'PUT',
         success: function(response) {
             enableAll();
@@ -125,6 +131,8 @@ function generateImageDetails(image) {
 function generateImageStatusDiv(image) {
     if (image.status == 1)
         return '<span class="badge badge-pill badge-success float-right">Selected</span>';
+    else if (image.status == 2)
+        return '<span class="badge badge-pill badge-warning float-right">Needs Fixing</span>';
 
     return '<span class="badge badge-pill badge-danger float-right">Not Selected</span>';
 
@@ -132,7 +140,7 @@ function generateImageStatusDiv(image) {
 
 function generateImageDiv(image) {
     url = "/static/dataset/" + getDatasetName() + "/images/" + image.name;
-    return $('<img src="' + url + '" style="width:100%; height:auto;" />')
+    return $('<img src="' + url + '" style="width: auto; height:100%;" />')
             .click(function(){
                 window.open(url, '_blank');
             });

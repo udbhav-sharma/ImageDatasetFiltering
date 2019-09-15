@@ -1,136 +1,150 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, render_template, request
-from flask_api import FlaskAPI, status as http_status
-from os.path import dirname, join, splitext
+
+from db import(
+    Dataset,
+    DBClient,
+    User,
+)
+
+from flask import (
+    Flask, 
+    redirect,
+    render_template, 
+    request,
+    session,
+    url_for,
+)
+
+from flask_api import (
+    FlaskAPI, 
+    status as http_status,
+)
+
+from flask_login import current_user
 
 import atexit
-import json
+import flask_login
+import logging
 import os
-import shutil
+import re
 import time
 
 app = FlaskAPI(__name__)
+app.secret_key = os.urandom(24)
 
-datasets = {}
-empty_image = {
-    "id": "<END>"
-}
+# Init LoginManager
+login_manager = flask_login.LoginManager()
+login_manager.init_app(app)
+
+dbclient = DBClient()
+
+''' Authentication '''
+
+@login_manager.user_loader
+def user_loader(id):
+    return dbclient.get_user(id)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'GET':
+        return render_template('login.html', error = "")
+
+    user = dbclient.get_user(request.form['userid'])
+
+    if user != None and request.form['password'] == user.password:
+        flask_login.login_user(user)
+        if 'next_url' in session:
+            return redirect(session['next_url'])
+        else:
+            return 'Please open the dataset page again'
+
+    return render_template('login.html', error = "Invalid user id or password")
+
+''' APP API Definitions '''
 
 @app.route("/dataset/<d_name>")
 def home(d_name):
-    load(d_name)
 
+    # Checking if user is authenticated
+    if not current_user.is_authenticated:
+        session['next_url'] = request.path
+        return redirect(url_for('login'))
+
+    # Rendering Home Page
     return render_template("index.html", dataset_name = d_name)
 
-@app.route("/dataset/<d_name>/<int:index>", methods=['GET'])
+@app.route("/api/dataset/<d_name>/<int:index>", methods=['GET'])
 def next(d_name, index):
-    load(d_name)
 
-    if index > len(datasets[d_name]): 
-        return empty_image
+    # Validating request params
+    dataset = dbclient.get_dataset(d_name)
+    if dataset == None:
+        return "No dataset with name " + d_name + " found", http_status.HTTP_400_BAD_REQUEST
+    
+    # Getting the Image from Dataset
+    index = max(1, index)
+    img = dataset.get_nth_image(index)
 
-    # TODO: Optimize the retrieval
-    key = sorted(datasets[d_name])[index-1]
-    return datasets[d_name][key]
+    if img is None: return {"id": "<END>"}
 
-@app.route("/dataset/<d_name>/status/<id>/<int:val>", methods=['PUT'])
+    # Returning Image Copy
+    img_dict = img.copy()
+    img_dict['status'] = dataset.get_status(img_dict["id"], current_user.id)
+    return img_dict
+    
+@app.route("/api/dataset/<d_name>/status/<id>/<int:val>", methods=['PUT'])
 def updateStatus(d_name, id, val):
-    load(d_name)
 
-    if id in datasets[d_name]:
-        datasets[d_name][id]["status"] = val
+    # Validating request params
+    dataset = dbclient.get_dataset(d_name)
+    if dataset == None:
+        return "No dataset with name " + d_name + " found", http_status.HTTP_400_BAD_REQUEST
+    
+    if not (val in [0, 1, 2]):
+        return "Invalid val passed", http_status.HTTP_400_BAD_REQUEST
+
+    # Updating image status for the user
+    if dataset.update_status(id, val, current_user.id):
         return "", http_status.HTTP_204_NO_CONTENT
     else:
-        return "Invalid dataset or image", http_status.HTTP_400_BAD_REQUEST
+        return "Error in updating status", http_status.HTTP_500_INTERNAL_SERVER_ERROR
 
-@app.route("/dataset/<d_name>/export", methods=['POST'])
+@app.route("/api/dataset/<d_name>/export", methods=['POST'])
 def export(d_name):
-    load(d_name)
 
-    n_d_name =  request.form["name"]
-    print("Creating dataset with name: " + n_d_name)
+    # New Dataset name validation
+    n_d_name = request.form["name"]
+    pattern = re.compile('[^a-zA-Z0-9-_]+')
+    n_d_name = pattern.sub('', n_d_name)
+    if len(n_d_name) == 0:
+        return "Invalid new dataset name", http_status.HTTP_400_BAD_REQUEST
+    if dbclient.get_dataset(n_d_name) != None:
+        return "Dataset " + n_d_name + " already exists", http_status.HTTP_400_BAD_REQUEST
 
-    if len(datasets[d_name]) == 0:
-        return "Invalid dataset name", http_status.HTTP_400_BAD_REQUEST
+    # Existing Dataset Name validation
+    dataset = dbclient.get_dataset(d_name)
+    if dataset == None:
+        return "No dataset with name " + d_name + " found", http_status.HTTP_400_BAD_REQUEST
 
-    dest = images_dir(n_d_name)
-    if os.path.exists(dest): return "Dataset already exists", http_status.HTTP_400_BAD_REQUEST
+    dbclient.create_dataset_from(d_name, n_d_name, current_user.id)
     
-    os.makedirs(dest)
-
-    src = images_dir(d_name)
-
-    images_detail = {}
-    count = 0
-    str_len = len(str(len(datasets[d_name])))
-
-    # Exporting data
-    for key in sorted(datasets[d_name].keys()):
-        image = datasets[d_name][key]
-
-        if image["status"] == 1:
-            shutil.copy(join(src, image["name"]), dest)
-            
-            _, file_extension = splitext(image["name"])
-
-            count += 1
-            id = "%0*d" % (str_len, count)
-            name = "%s%s" % (id, file_extension)
-
-            os.rename(join(dest, image["name"]), join(dest, name))
-
-            images_detail[id] = image
-            images_detail[id]["id"] = id
-            images_detail[id]["name"] = name
-    
-    with open(join(dataset_dir(n_d_name), 'ImagesDetail.json'), 'w') as outfile:
-        json.dump(images_detail, outfile)
-
     return n_d_name, http_status.HTTP_201_CREATED
 
-def load(d_name):
-    global datasets
-
-    if d_name not in datasets:
-        images_detail_path = join(join(dataset_dir(), d_name), "ImagesDetail.json")
-
-        if os.path.exists(images_detail_path):
-            with open(images_detail_path) as json_file:
-                datasets[d_name] = json.load(json_file)
-        else:
-            datasets[d_name] = {}
-
 def save():
-    for d_name in datasets:
-        if len(datasets[d_name]) > 0:
-            with open(join(dataset_dir(d_name), 'ImagesDetail.json'), 'w') as outfile:
-                json.dump(datasets[d_name], outfile)
-
-    print("Image Status written to the file")
-
-def images_dir(d_name):
-    return join(dataset_dir(d_name), "images")
-
-def dataset_dir(d_name=None):
-    if d_name is None:
-        return join(static_dir(), "dataset")
-    
-    return join(dataset_dir(), d_name)
-
-def static_dir(): 
-    return join(main_dir(), "static")
-
-def main_dir():
-    return dirname(os.path.realpath(__file__))
+    dbclient.flush_all_to_disk()
+    logging.info("Data persisted to disk")
 
 def cleanup():
-    save()
+    dbclient.flush_all_to_disk()
     scheduler.shutdown()
 
 if __name__ == "__main__":
 
+    logging.basicConfig()
+    logging.root.setLevel(logging.INFO)
+
     scheduler = BackgroundScheduler()
-    scheduler.add_job(func=save, trigger="interval", seconds=60)
+    scheduler.add_job(func=save, trigger="interval", seconds=300)
     scheduler.start()
 
     # Shut down the scheduler when exiting the app
