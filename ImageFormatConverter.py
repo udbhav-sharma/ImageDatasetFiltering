@@ -2,6 +2,11 @@ import argparse
 from os import listdir, remove, system
 from os.path import join, normpath, splitext
 
+ext_format = {
+    '.png': 'png',
+    '.gif': 'gif'
+}
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Image Format Converter")
@@ -17,10 +22,12 @@ if __name__ == "__main__":
         old_path = join(path, f)
         new_path = join(path, (name + ".jpg"))
         
-        if ext == '.png': 
+        if ext in ['.png', '.gif']: 
             count += 1
             print("%s -> %s" % (old_path, new_path))
-            system("sips -s format png {} --out {}".format(old_path, new_path))
+
+            system("sips -s format {} {} --out {}".format(ext_format[ext], old_path, new_path))
+
             remove(old_path)
 
     print("Total Images converted: %d" % (count))
