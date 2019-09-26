@@ -51,8 +51,8 @@ $('#exportBtn').click(function() {
             showSuccess("Dataset " + response + " exported successfully!!");
         },
         error: function(response) {
-            showError(response.responseText);
             enableAll();
+            showError(response.responseText);
         }
      });
 });
@@ -75,9 +75,9 @@ function updateImage(index) {
         currentImage = data;
         enableAll();
         showImage(currentImage);
-    }).fail(function() {
+    }).fail(function(response) {
         enableAll();
-        showError("Something went wrong...");
+        showError(response.responseText);
     });
 }
 
@@ -91,8 +91,8 @@ function updateStatus(id, status, successCallback) {
             successCallback();
         },
         error: function(response) {
-            showError("Something went wrong...");
             enableAll();
+            showError("Something went wrong...");
         }
      });
 }
