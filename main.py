@@ -20,7 +20,10 @@ from flask_api import (
     status as http_status,
 )
 
-from flask_login import current_user
+from flask_login import (
+    current_user,
+    logout_user,
+)
 
 import atexit
 import flask_login
@@ -60,6 +63,11 @@ def login():
 
     return render_template('login.html', error = "Invalid user id or password")
 
+@app.route('/logout')
+def logout():
+    logout_user()
+    return "Logged out successfully!!"
+
 ''' APP API Definitions '''
 
 @app.route("/dataset/<d_name>")
@@ -71,7 +79,7 @@ def home(d_name):
         return redirect(url_for('login'))
 
     # Rendering Home Page
-    return render_template("index.html", dataset_name = d_name)
+    return render_template("index.html", dataset_name = d_name, user = current_user.id)
 
 @app.route("/api/dataset/<d_name>/<int:index>", methods=['GET'])
 def next(d_name, index):
@@ -151,4 +159,4 @@ if __name__ == "__main__":
     atexit.register(cleanup)
 
     # app.run()
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', port=8080)
